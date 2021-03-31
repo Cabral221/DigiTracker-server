@@ -1,5 +1,5 @@
 [submodule "DigiTracker-web"]
-	path = ../DigiTracker-web
-	url = https://github.com/Cabral221/DigiTracker-web.git
+	path = DigiTracker-web
+	url = ../DigiTracker-web.git
 	branch = master
 	ignore = all
