@@ -41,6 +41,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -93,9 +94,11 @@ public class UserResource extends BaseObjectResource<User> {
     @POST
     public Response add(User entity) throws StorageException {
         User currentUser = getUserId() > 0 ? permissionsService.getUser(getUserId()) : null;
+        // Début du bloc de logique NON-ADMINISTRATEUR (Auto-inscription OU Manager simple)
         if (currentUser == null || !currentUser.getAdministrator()) {
             permissionsService.checkUserUpdate(getUserId(), new User(), entity);
             if (currentUser != null && currentUser.getUserLimit() != 0) {
+                // Bloc 1 : Manager simple avec limite d'utilisateur
                 int userLimit = currentUser.getUserLimit();
                 if (userLimit > 0) {
                     int userCount = storage.getObjects(baseClass, new Request(
@@ -107,6 +110,7 @@ public class UserResource extends BaseObjectResource<User> {
                     }
                 }
             } else {
+                // Bloc 2 : Auto-inscription (ou première création admin)
                 if (UserUtil.isEmpty(storage)) {
                     entity.setAdministrator(true);
                 } else if (!permissionsService.getServer().getRegistration()) {
@@ -152,6 +156,51 @@ public class UserResource extends BaseObjectResource<User> {
             throw new SecurityException("One-time password is disabled");
         }
         return new GoogleAuthenticator().createCredentials().getKey();
+    }
+
+    @Override
+    @PUT
+    @Path("{id}")
+    public Response update(User entity) throws Exception {
+
+        // On s'assure que l'entité reçue est bien un utilisateur
+        if (!(entity instanceof User)) {
+            // Laisser la classe parente gérer si ce n'est pas un utilisateur
+            return super.update(entity);
+        }
+        
+        User updatedUser = (User) entity;
+        long userId = updatedUser.getId();
+
+        // 1. Récupérer l'utilisateur qui effectue l'appel (l'utilisateur courant)
+        User currentUser = permissionsService.getUser(getUserId());
+
+        // 2. Récupérer l'utilisateur original depuis la base de données (avant mise à jour)
+        // Nous utilisons la requête standard Traccar pour être sûr d'avoir tous les attributs
+        User originalUser = storage.getObject(User.class, new Request(
+                new Columns.All(), new Condition.Equals("id", userId)));
+
+        // --- DÉBUT LOGIQUE DE SÉCURITÉ isSubscriber ---
+
+        // 3. VÉRIFICATION DE SÉCURITÉ CRITIQUE : Seul l'Admin peut modifier isSubscriber
+        if (!currentUser.getAdministrator()) {
+            // L'utilisateur n'est PAS administrateur.
+            // 3a. Récupérer la valeur IMMUABLE de l'utilisateur original (en base)
+            String originalSubscriberStatus = originalUser.getString("isSubscriber");
+            
+            // 3b. Écraser toute tentative de modification de l'attribut dans la requête entrante
+            if (updatedUser.getAttributes().containsKey("isSubscriber")) {
+                updatedUser.getAttributes().put("isSubscriber", originalSubscriberStatus);
+            }
+        }
+        // --- FIN LOGIQUE DE SÉCURITÉ isSubscriber ---
+
+        // 4. Appeler la méthode parente pour exécuter le reste du traitement (permissions, enregistrement, logging)
+        // La méthode parente travaillera avec l'objet 'entity' qui contient maintenant l'attribut sécurisé.
+        Response response = super.update(updatedUser);
+
+        // L'actionLogger.edit est déjà appelé dans la méthode parente 'update', donc pas besoin de le répéter ici.
+        return response;
     }
 
 }
