@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
+<properties>
+    <entry key='config.default'>C:/www/traccar/debug.xml</entry>
+
+    <entry key='web.path'>C:/www/traccar/traccar-web/build</entry>
+    <entry key='web.localizationPath'>C:/www/traccar/traccar-web/src/resources/l10n</entry>
+
+    <entry key='database.driver'>*</entry>
+    <entry key='database.url'>*</entry>
+    <entry key='database.user'>*</entry>
+    <entry key='database.password'>*</entry>
+
+    <entry key='web.port'>8082</entry>
+    <entry key='web.registration'>true</entry>
+
+    <entry key='stripe.secretKey'>sk_test_VOTRE_CLE_ICI</entry>
+    <entry key='stripe.webhookSecret'>whsec_VOTRE_SECRET_WEBHOOK_ICI</entry>
+</properties>
