@@ -36,6 +36,7 @@ import org.traccar.storage.query.Request;
 
 import jakarta.inject.Inject;
 import java.util.Objects;
+import java.text.SimpleDateFormat;
 
 @RequestScoped
 public class PermissionsService {
@@ -223,4 +224,52 @@ public class PermissionsService {
         }
     }
 
+    public void checkSubscription(long userId) throws StorageException, SecurityException {
+        User user = getUser(userId);
+        if (user.getAdministrator()) return;
+
+        Object isSubscribed = user.getAttributes().get("isSubscriber");
+        Object endDateObj = user.getAttributes().get("subscriptionEndDate");
+
+        // 1. Vérification du statut (souple)
+        boolean subscribed = false;
+        if (isSubscribed instanceof Boolean) {
+            subscribed = (Boolean) isSubscribed;
+        } else if (isSubscribed != null) {
+            subscribed = isSubscribed.toString().equalsIgnoreCase("true");
+        }
+
+        if (!subscribed) throw new SecurityException("Subscription required");
+
+        // 2. Vérification de la date (très souple)
+        if (endDateObj != null) {
+            long expireTime = 0;
+
+            if (endDateObj instanceof Number) {
+                // Cas User 2 (Timestamp Long)
+                expireTime = ((Number) endDateObj).longValue();
+            } else {
+                // Cas User 1 (Texte "2025-12-17")
+                try {
+                    // On essaie d'abord le format court YYYY-MM-DD
+                    SimpleDateFormat shortSdf = new SimpleDateFormat("yyyy-MM-dd");
+                    expireTime = shortSdf.parse(endDateObj.toString()).getTime();
+                } catch (Exception e) {
+                    // Si ça échoue, on tente votre ancien format long
+                    try {
+                        SimpleDateFormat longSdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", java.util.Locale.ENGLISH);
+                        expireTime = longSdf.parse(endDateObj.toString()).getTime();
+                    } catch (Exception e2) {
+                        throw new SecurityException("Invalid date format in database");
+                    }
+                }
+            }
+
+            if (System.currentTimeMillis() > expireTime) {
+                throw new SecurityException("Subscription expired");
+            }
+        } else {
+            throw new SecurityException("No expiration date found");
+        }
+    }
 }
