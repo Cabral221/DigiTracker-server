@@ -106,7 +106,7 @@ public class StripeResource extends BaseResource {
             // 1. Préparation des dates
             Calendar calendar = Calendar.getInstance();
             Date startDate = calendar.getTime();
-            calendar.add(Calendar.MONTH, 1);
+            calendar.add(Calendar.YEAR, 1);
             Date endDate = calendar.getTime();
 
             // 2. Formatage des dates en String (Format Traccar standard)
