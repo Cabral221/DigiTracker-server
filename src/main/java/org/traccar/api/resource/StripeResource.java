@@ -23,6 +23,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.traccar.model.Group;
+import org.traccar.model.Permission;
+
 @Path("payments")
 public class StripeResource extends BaseResource {
 
@@ -96,34 +99,51 @@ public class StripeResource extends BaseResource {
     }
 
     private void updateUserSubscription(String email) throws StorageException {
-        // 1. Recherche de l'utilisateur avec toutes les colonnes explicitement définies
         User user = storage.getObjects(User.class, new Request(
                 new Columns.All(),
                 new Condition.Equals("email", email)))
                 .stream().findFirst().orElse(null);
 
         if (user != null) {
-            // 1. Préparation des dates
+            // 1. Mise à jour des attributs de l'utilisateur (votre code actuel)
             Calendar calendar = Calendar.getInstance();
-            Date startDate = calendar.getTime();
-            calendar.add(Calendar.YEAR, 1);
-            Date endDate = calendar.getTime();
-
-            // 2. Formatage des dates en String (Format Traccar standard)
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            String startDateStr = sdf.format(startDate);
-            String endDateStr = sdf.format(endDate);
+            String startDateStr = sdf.format(calendar.getTime());
+            calendar.add(Calendar.YEAR, 1);
+            String endDateStr = sdf.format(calendar.getTime());
 
-            // 3. Mise à jour des attributs (Harmonisation avec User 1)
-            user.set("isSubscriber", "true"); // On garde le booléen, c'est mieux
-            user.set("subscriptionStartDate", startDateStr); // Devient "2025-12-18"
-            user.set("subscriptionEndDate", endDateStr);     // Devient "2026-01-18"
+            user.set("isSubscriber", "true");
+            user.set("subscriptionStartDate", startDateStr);
+            user.set("subscriptionEndDate", endDateStr);
 
-            // 4. Envoi de la mise à jour à la base de données
-            // On spécifie Columns.All() pour qu'il sache qu'il doit sauvegarder les attributs modifiés
             storage.updateObject(user, new Request(
                     new Columns.All(), 
                     new Condition.Equals("id", user.getId())));
+
+            // 2. RECHERCHE DYNAMIQUE DU GROUPE "Flotte SenBus"
+            Group fleetGroup = storage.getObjects(Group.class, new Request(
+                    new Columns.All(),
+                    new Condition.Equals("name", "Flotte SenBus")))
+                    .stream().findFirst().orElse(null);
+
+            if (fleetGroup != null) {
+                try {
+                    // 3. CRÉATION DE LA PERMISSION (Liaison User <-> Group)
+                    // Traccar utilise un objet Permission pour représenter les liens dans les tables tc_xxx_xxx
+                    Permission permission = new Permission(
+                            User.class, user.getId(), 
+                            Group.class, fleetGroup.getId());
+                    
+                    storage.addPermission(permission);
+                    
+                    LOGGER.info("✅ Liaison effectuée : Utilisateur " + email + " lié au groupe " + fleetGroup.getName() + " (ID: " + fleetGroup.getId() + ")");
+                } catch (Exception e) {
+                    // On log l'erreur mais on ne bloque pas car l'abonnement est déjà activé
+                    LOGGER.warn("⚠️ Note: L'utilisateur était peut-être déjà lié au groupe.");
+                }
+            } else {
+                LOGGER.error("❌ ERREUR CRITIQUE : Le groupe 'Flotte SenBus' n'existe pas en base de données !");
+            }
 
             LOGGER.info("✅ Abonnement activé avec succès pour : " + email);
         } else {
