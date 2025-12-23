@@ -1,17 +1,5 @@
 /*
  * Copyright 2015 - 2025 Anton Tananaev (anton@traccar.org)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 package org.traccar.api.resource;
 
@@ -27,6 +15,7 @@ import org.traccar.helper.LogAction;
 import org.traccar.helper.SessionHelper;
 import org.traccar.helper.model.UserUtil;
 import org.traccar.model.Device;
+import org.traccar.model.Group;
 import org.traccar.model.ManagedUser;
 import org.traccar.model.Permission;
 import org.traccar.model.User;
@@ -35,6 +24,8 @@ import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Order;
 import org.traccar.storage.query.Request;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
@@ -55,6 +46,8 @@ import java.util.stream.Stream;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserResource extends BaseObjectResource<User> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserResource.class);
 
     @Inject
     private Config config;
@@ -94,11 +87,10 @@ public class UserResource extends BaseObjectResource<User> {
     @POST
     public Response add(User entity) throws StorageException {
         User currentUser = getUserId() > 0 ? permissionsService.getUser(getUserId()) : null;
-        // Début du bloc de logique NON-ADMINISTRATEUR (Auto-inscription OU Manager simple)
+        
         if (currentUser == null || !currentUser.getAdministrator()) {
             permissionsService.checkUserUpdate(getUserId(), new User(), entity);
             if (currentUser != null && currentUser.getUserLimit() != 0) {
-                // Bloc 1 : Manager simple avec limite d'utilisateur
                 int userLimit = currentUser.getUserLimit();
                 if (userLimit > 0) {
                     int userCount = storage.getObjects(baseClass, new Request(
@@ -110,7 +102,6 @@ public class UserResource extends BaseObjectResource<User> {
                     }
                 }
             } else {
-                // Bloc 2 : Auto-inscription (ou première création admin)
                 if (UserUtil.isEmpty(storage)) {
                     entity.setAdministrator(true);
                 } else if (!permissionsService.getServer().getRegistration()) {
@@ -124,12 +115,34 @@ public class UserResource extends BaseObjectResource<User> {
             }
         }
 
+        // Création de l'utilisateur
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         storage.updateObject(entity, new Request(
                 new Columns.Include("hashedPassword", "salt"),
                 new Condition.Equals("id", entity.getId())));
 
         actionLogger.create(request, getUserId(), entity);
+        
+        // 3. Liaison au groupe "Flotte SenBus"
+        Group fleetGroup = storage.getObjects(Group.class, new Request(
+                    new Columns.All(),
+                    new Condition.Equals("name", "Flotte SenBus")))
+                    .stream().findFirst().orElse(null);
+
+        // --- DÉBUT LIAISON AUTOMATIQUE FLOTTE SENBUS ---
+        // On lie chaque nouvel utilisateur au groupe public (Passagers)
+        if (fleetGroup != null) {
+            try {
+                storage.addPermission(new Permission(User.class, entity.getId(), Group.class, fleetGroup.getId()));
+                actionLogger.link(request, getUserId(), User.class, entity.getId(), Group.class, fleetGroup.getId());
+                LOGGER.info("✅ Liaison groupe effectuée pour : " + entity.getEmail());
+                LOGGER.info("Utilisateur " + entity.getId() + " lié automatiquement au groupe SenBus ID: " + fleetGroup.getId());
+            } catch (Exception e) {
+                LOGGER.warn("⚠️ Liaison déjà existante pour : " + entity.getEmail());
+                LOGGER.warn("Échec de liaison au groupe SenBus : " + e.getMessage());
+            }
+        }
+        // --- FIN LIAISON AUTOMATIQUE ---
 
         if (currentUser != null && currentUser.getUserLimit() != 0) {
             storage.addPermission(new Permission(User.class, getUserId(), ManagedUser.class, entity.getId()));
@@ -162,7 +175,7 @@ public class UserResource extends BaseObjectResource<User> {
     @PUT
     @Path("{id}")
     public Response update(User entity) throws Exception {
-
+        
         // On s'assure que l'entité reçue est bien un utilisateur
         if (!(entity instanceof User)) {
             // Laisser la classe parente gérer si ce n'est pas un utilisateur
@@ -171,11 +184,11 @@ public class UserResource extends BaseObjectResource<User> {
         
         User updatedUser = (User) entity;
         long userId = updatedUser.getId();
-
+        
         // 1. Récupérer l'utilisateur qui effectue l'appel (l'utilisateur courant)
         User currentUser = permissionsService.getUser(getUserId());
 
-        // 2. Récupérer l'utilisateur original depuis la base de données (avant mise à jour)
+         // 2. Récupérer l'utilisateur original depuis la base de données (avant mise à jour)
         // Nous utilisons la requête standard Traccar pour être sûr d'avoir tous les attributs
         User originalUser = storage.getObject(User.class, new Request(
                 new Columns.All(), new Condition.Equals("id", userId)));
@@ -183,24 +196,18 @@ public class UserResource extends BaseObjectResource<User> {
         // --- DÉBUT LOGIQUE DE SÉCURITÉ isSubscriber ---
 
         // 3. VÉRIFICATION DE SÉCURITÉ CRITIQUE : Seul l'Admin peut modifier isSubscriber
+        // --- SÉCURITÉ ATTRIBUTS (isSubscriber) ---
         if (!currentUser.getAdministrator()) {
-            // L'utilisateur n'est PAS administrateur.
-            // 3a. Récupérer la valeur IMMUABLE de l'utilisateur original (en base)
-            String originalSubscriberStatus = originalUser.getString("isSubscriber");
-            
-            // 3b. Écraser toute tentative de modification de l'attribut dans la requête entrante
+            Object originalStatus = originalUser.getAttributes().get("isSubscriber");
             if (updatedUser.getAttributes().containsKey("isSubscriber")) {
-                updatedUser.getAttributes().put("isSubscriber", originalSubscriberStatus);
+                updatedUser.getAttributes().put("isSubscriber", originalStatus);
             }
         }
         // --- FIN LOGIQUE DE SÉCURITÉ isSubscriber ---
 
         // 4. Appeler la méthode parente pour exécuter le reste du traitement (permissions, enregistrement, logging)
         // La méthode parente travaillera avec l'objet 'entity' qui contient maintenant l'attribut sécurisé.
-        Response response = super.update(updatedUser);
 
-        // L'actionLogger.edit est déjà appelé dans la méthode parente 'update', donc pas besoin de le répéter ici.
-        return response;
+        return super.update(updatedUser);
     }
-
 }

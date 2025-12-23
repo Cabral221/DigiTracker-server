@@ -105,22 +105,7 @@ public class StripeResource extends BaseResource {
                     new Columns.All(),
                     new Condition.Equals("id", user.getId())));
 
-            // 3. Liaison au groupe "Flotte SenBus"
-            Group fleetGroup = storage.getObjects(Group.class, new Request(
-                    new Columns.All(),
-                    new Condition.Equals("name", "Flotte SenBus")))
-                    .stream().findFirst().orElse(null);
-
-            if (fleetGroup != null) {
-                try {
-                    storage.addPermission(new Permission(User.class, user.getId(), Group.class, fleetGroup.getId()));
-                    LOGGER.info("✅ Liaison groupe effectuée pour : " + email);
-                } catch (Exception e) {
-                    LOGGER.warn("⚠️ Liaison déjà existante pour : " + email);
-                }
-            }
-
-            // 4. ENVOI DE L'EMAIL DE CONFIRMATION
+            // 3. ENVOI DE L'EMAIL DE CONFIRMATION
             sendEmail(user, endDateStr);
 
             LOGGER.info("✅ Abonnement activé via " + provider + " pour : " + email);
