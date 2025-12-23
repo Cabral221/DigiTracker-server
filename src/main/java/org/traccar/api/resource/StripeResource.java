@@ -89,6 +89,7 @@ public class StripeResource extends BaseResource {
         if (user != null) {
             // 1. Calcul des dates
             Calendar calendar = Calendar.getInstance();
+
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             String startDateStr = sdf.format(calendar.getTime());
             calendar.add(Calendar.YEAR, 1);
