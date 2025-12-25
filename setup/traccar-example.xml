@@ -16,4 +16,12 @@
 
     <entry key='stripe.secretKey'>sk_test_VOTRE_CLE_ICI</entry>
     <entry key='stripe.webhookSecret'>whsec_VOTRE_SECRET_WEBHOOK_ICI</entry>
+
+    <entry key='mail.smtp.host'>#</entry>
+    <entry key='mail.smtp.port'>#</entry>
+    <entry key='mail.smtp.ssl.enable'>#</entry>
+    <entry key='mail.smtp.from'>#</entry>
+    <entry key='mail.smtp.auth'>#</entry>
+    <entry key='mail.smtp.username'>#</entry>
+    <entry key='mail.smtp.password'>#</entry>
 </properties>
