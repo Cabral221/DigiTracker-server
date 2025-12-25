@@ -86,6 +86,14 @@ public class PaymentResource extends BaseResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response handleWaveWebhook(String payload, @HeaderParam("Wave-Signature") String sigHeader) {
         try {
+
+            String waveSecret = config.getString("wave.webhookSecret");
+            // Vérification de sécurité
+            if (sigHeader == null || !sigHeader.equals(waveSecret)) {
+                LOGGER.error("❌ Tentative de webhook Wave non autorisée ! Signature invalide.");
+                return Response.status(Response.Status.UNAUTHORIZED).build();
+            }
+
             // 1. Parser le JSON de Wave
             com.google.gson.JsonObject jsonPayload = ApiResource.GSON.fromJson(payload, com.google.gson.JsonObject.class);
             
