@@ -142,6 +142,27 @@ public class PaymentResource extends BaseResource {
             user.set("subscriptionStartDate", startDateStr);
             user.set("subscriptionEndDate", endDateStr);
             user.set("paymentProvider", provider); // Pour vos stats
+
+            // --- DÉBUT DÉSINSCRIPTION DU GROUPE PUBLIC ---
+            // 1. Trouver le groupe public
+            Group fleetGroup = storage.getObjects(Group.class, new Request(
+                    new Columns.All(),
+                    new Condition.Equals("name", "Flotte SenBus")))
+                    .stream().findFirst().orElse(null);
+
+            if (fleetGroup != null) {
+                try {
+                    // 2. Supprimer la liaison entre l'utilisateur et ce groupe
+                    storage.removePermission(new Permission(User.class, user.getId(), Group.class, fleetGroup.getId()));
+                    
+                    // Log pour confirmer
+                    LOGGER.info("🚫 Utilisateur " + email + " retiré du groupe public SenBus (Abonnement actif)");
+                } catch (Exception e) {
+                    LOGGER.warn("⚠️ Impossible de retirer l'utilisateur du groupe public : " + e.getMessage());
+                }
+            }
+            // --- FIN DÉSINSCRIPTION ---
+            
             // IMPORTANT : On nettoie les attributs JSON qui pourraient forcer le readonly
             // car Traccar vérifie souvent les attributs avant la propriété de base
             user.getAttributes().remove("readonly");
