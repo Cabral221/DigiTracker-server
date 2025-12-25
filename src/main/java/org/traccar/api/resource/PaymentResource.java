@@ -19,15 +19,17 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.Response;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import jakarta.ws.rs.core.MediaType;
 
 @Path("payments")
-public class StripeResource extends BaseResource {
+public class PaymentResource extends BaseResource {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StripeResource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PaymentResource.class);
 
     @Inject
     private Config config;
@@ -35,10 +37,11 @@ public class StripeResource extends BaseResource {
     @Inject
     private MailManager mailManager; // Ajoutez cette injection
 
+    // --- POINT D'ENTRÉE STRIPE  ---
     @PermitAll
     @POST
-    @Path("webhook")
-    public Response handleWebhook(String payload, @HeaderParam("Stripe-Signature") String sigHeader) {
+    @Path("stripe/webhook")
+    public Response handleStripeWebhook(String payload, @HeaderParam("Stripe-Signature") String sigHeader) {
         String endpointSecret = config.getString("stripe.webhookSecret");
         Event event;
 
@@ -76,6 +79,37 @@ public class StripeResource extends BaseResource {
         }
     }
 
+    // --- POINT D'ENTRÉE WAVE ---
+    @PermitAll
+    @POST
+    @Path("wave/webhook")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response handleWaveWebhook(String payload, @HeaderParam("Wave-Signature") String sigHeader) {
+        try {
+            // 1. Parser le JSON de Wave
+            com.google.gson.JsonObject jsonPayload = ApiResource.GSON.fromJson(payload, com.google.gson.JsonObject.class);
+            
+            // 2. Vérifier le type d'événement (Wave utilise souvent "checkout.session.completed")
+            String type = jsonPayload.get("type").getAsString();
+            
+            if ("checkout.session.completed".equals(type)) {
+                com.google.gson.JsonObject data = jsonPayload.getAsJsonObject("data");
+                
+                // Wave permet de récupérer l'email ou un identifiant client
+                String userEmail = data.get("client_reference_id").getAsString(); // On utilise souvent l'ID ou l'Email passé au checkout
+                
+                if (userEmail != null && userEmail.contains("@")) {
+                    processSubscription(userEmail, "Wave");
+                }
+            }
+            
+            return Response.ok().build();
+        } catch (Exception e) {
+            LOGGER.error("Erreur Webhook Wave : " + e.getMessage());
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+    }
+
     /**
      * MÉTHODE D'ACTIVATION UNIVERSELLE
      * Peut être appelée par Stripe, Wave, ou un admin.
@@ -100,6 +134,13 @@ public class StripeResource extends BaseResource {
             user.set("subscriptionStartDate", startDateStr);
             user.set("subscriptionEndDate", endDateStr);
             user.set("paymentProvider", provider); // Pour vos stats
+            // IMPORTANT : On nettoie les attributs JSON qui pourraient forcer le readonly
+            // car Traccar vérifie souvent les attributs avant la propriété de base
+            user.getAttributes().remove("readonly");
+            // --- MISES À JOUR CRUCIALES POUR LES TRANSPORTURS ---
+            user.setDeviceLimit(5); // ✅ Débloque les 5 camions
+            user.setReadonly(false); // ✅ Permet à l'utilisateur de modifier ses données
+            user.setLimitCommands(false); // Optionnel : permet d'envoyer des commandes (coupure moteur)
 
             storage.updateObject(user, new Request(
                     new Columns.All(),

@@ -115,10 +115,20 @@ public class UserResource extends BaseObjectResource<User> {
             }
         }
 
+        // --- INITIALISATION SÉCURITÉ SENBUS ---
+        // On force le mode lecture seule et la limite à 0 avant l'insertion
+        if (!entity.getAdministrator()) { 
+            entity.setReadonly(true);
+            LOGGER.info("✅ ReadOnly à true pour : " + entity.getEmail());
+            // L'utilisateur ne peut rien créer/modifier
+            entity.setDeviceLimit(0);   // Impossible d'ajouter un véhicule
+        }
+        // ---------------------------------------
+
         // Création de l'utilisateur
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         storage.updateObject(entity, new Request(
-                new Columns.Include("hashedPassword", "salt"),
+                new Columns.Include("hashedPassword", "salt", "readonly", "deviceLimit"),
                 new Condition.Equals("id", entity.getId())));
 
         actionLogger.create(request, getUserId(), entity);
