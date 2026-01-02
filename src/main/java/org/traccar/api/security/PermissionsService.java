@@ -241,8 +241,10 @@ public class PermissionsService {
             subscribed = isSubscribed.toString().equalsIgnoreCase("true");
         }
 
-        if (!subscribed) throw new SecurityException("Subscription required");
-
+        if (!subscribed) {
+            throw new SecurityException("Subscription required");
+        }
+        
         // 2. Vérification de la date (très souple)
         if (endDateObj != null) {
             long expireTime = 0;
