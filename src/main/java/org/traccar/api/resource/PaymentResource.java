@@ -131,11 +131,31 @@ public class PaymentResource extends BaseResource {
         if (user != null) {
             // 1. Calcul des dates
             Calendar calendar = Calendar.getInstance();
-
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            String startDateStr = sdf.format(calendar.getTime());
+            
+            // Logique de renouvellement intelligent
+            String currentEndDateStr = (String) user.getAttributes().get("subscriptionEndDate");
+            if (currentEndDateStr != null) {
+                try {
+                    Calendar currentEnd = Calendar.getInstance();
+                    currentEnd.setTime(sdf.parse(currentEndDateStr));
+                    
+                    // Si l'abonnement est encore valide, on commence à partir de la fin actuelle
+                    if (currentEnd.after(calendar)) {
+                        calendar.setTime(currentEnd.getTime());
+                        LOGGER.info("⏳ Prolongation de l'abonnement existant pour : " + email);
+                    }
+                } catch (Exception e) {
+                    LOGGER.warn("⚠️ Date existante invalide, démarrage à aujourd'hui.");
+                }
+            }
+
+            // Pour SenBus, on ajoute 1 an (ou Calendar.MONTH, 1 pour un mois)
             calendar.add(Calendar.YEAR, 1);
             String endDateStr = sdf.format(calendar.getTime());
+            
+            // Pour la date de début, on garde la date du jour du paiement
+            String startDateStr = sdf.format(new java.util.Date());
 
             // 2. Mise à jour de l'utilisateur
             user.set("isSubscriber", "true");
@@ -178,12 +198,12 @@ public class PaymentResource extends BaseResource {
             // 3. ENVOI DE L'EMAIL DE CONFIRMATION
             sendEmail(user, endDateStr);
 
-            LOGGER.info("✅ Abonnement activé via " + provider + " pour : " + email);
+            LOGGER.info("✅ Abonnement activé/prolongé via " + provider + " jusqu'au " + endDateStr + " pour : " + email);
         } else {
             LOGGER.warn("❌ Utilisateur introuvable pour activation : " + email);
         }
     }
-
+    
     private void sendEmail(User user, String endDate) {
         if (mailManager != null) {
             try {
