@@ -54,8 +54,11 @@ public class PaymentResource extends BaseResource {
             }
 
             if ("checkout.session.completed".equals(event.getType())) {
-                com.google.gson.JsonObject jsonPayload = ApiResource.GSON.fromJson(payload, com.google.gson.JsonObject.class);
-                com.google.gson.JsonObject dataObj = jsonPayload.getAsJsonObject("data").getAsJsonObject("object");
+                com.google.gson.JsonObject jsonPayload = ApiResource.GSON
+                    .fromJson(payload, com.google.gson.JsonObject.class);
+                com.google.gson.JsonObject dataObj = jsonPayload
+                    .getAsJsonObject("data")
+                    .getAsJsonObject("object");
 
                 String userEmail = null;
                 if (dataObj.has("customer_email") && !dataObj.get("customer_email").isJsonNull()) {
@@ -95,22 +98,24 @@ public class PaymentResource extends BaseResource {
             }
 
             // 1. Parser le JSON de Wave
-            com.google.gson.JsonObject jsonPayload = ApiResource.GSON.fromJson(payload, com.google.gson.JsonObject.class);
-            
+            com.google.gson.JsonObject jsonPayload = ApiResource.GSON
+                .fromJson(payload, com.google.gson.JsonObject.class);
+
             // 2. Vérifier le type d'événement (Wave utilise souvent "checkout.session.completed")
             String type = jsonPayload.get("type").getAsString();
-            
+
             if ("checkout.session.completed".equals(type)) {
                 com.google.gson.JsonObject data = jsonPayload.getAsJsonObject("data");
-                
+
                 // Wave permet de récupérer l'email ou un identifiant client
-                String userEmail = data.get("client_reference_id").getAsString(); // On utilise souvent l'ID ou l'Email passé au checkout
-                
+                // On utilise souvent l'ID ou l'Email passé au checkout
+                String userEmail = data.get("client_reference_id").getAsString();
+
                 if (userEmail != null && userEmail.contains("@")) {
                     processSubscription(userEmail, "Wave");
                 }
             }
-            
+
             return Response.ok().build();
         } catch (Exception e) {
             LOGGER.error("Erreur Webhook Wave : " + e.getMessage());
@@ -132,14 +137,14 @@ public class PaymentResource extends BaseResource {
             // 1. Calcul des dates
             Calendar calendar = Calendar.getInstance();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            
+
             // Logique de renouvellement intelligent
             String currentEndDateStr = (String) user.getAttributes().get("subscriptionEndDate");
             if (currentEndDateStr != null) {
                 try {
                     Calendar currentEnd = Calendar.getInstance();
                     currentEnd.setTime(sdf.parse(currentEndDateStr));
-                    
+
                     // Si l'abonnement est encore valide, on commence à partir de la fin actuelle
                     if (currentEnd.after(calendar)) {
                         calendar.setTime(currentEnd.getTime());
@@ -153,7 +158,7 @@ public class PaymentResource extends BaseResource {
             // Pour SenBus, on ajoute 1 an (ou Calendar.MONTH, 1 pour un mois)
             calendar.add(Calendar.YEAR, 1);
             String endDateStr = sdf.format(calendar.getTime());
-            
+
             // Pour la date de début, on garde la date du jour du paiement
             String startDateStr = sdf.format(new java.util.Date());
 
@@ -174,7 +179,7 @@ public class PaymentResource extends BaseResource {
                 try {
                     // 2. Supprimer la liaison entre l'utilisateur et ce groupe
                     storage.removePermission(new Permission(User.class, user.getId(), Group.class, fleetGroup.getId()));
-                    
+
                     // Log pour confirmer
                     LOGGER.info("🚫 Utilisateur " + email + " retiré du groupe public SenBus (Abonnement actif)");
                 } catch (Exception e) {
@@ -182,7 +187,7 @@ public class PaymentResource extends BaseResource {
                 }
             }
             // --- FIN DÉSINSCRIPTION ---
-            
+
             // IMPORTANT : On nettoie les attributs JSON qui pourraient forcer le readonly
             // car Traccar vérifie souvent les attributs avant la propriété de base
             user.getAttributes().remove("readonly");
@@ -198,12 +203,14 @@ public class PaymentResource extends BaseResource {
             // 3. ENVOI DE L'EMAIL DE CONFIRMATION
             sendEmail(user, endDateStr);
 
-            LOGGER.info("✅ Abonnement activé/prolongé via " + provider + " jusqu'au " + endDateStr + " pour : " + email);
+            LOGGER.info("✅ Abonnement activé/prolongé via "
+                        + provider + " jusqu'au "
+                        + endDateStr + " pour : " + email);
         } else {
             LOGGER.warn("❌ Utilisateur introuvable pour activation : " + email);
         }
     }
-    
+
     private void sendEmail(User user, String endDate) {
         if (mailManager != null) {
             try {
@@ -213,12 +220,12 @@ public class PaymentResource extends BaseResource {
                         + "Votre accès à la flotte SenBus est désormais actif jusqu'au " + endDate + ".\n\n"
                         + "Bonne navigation sur notre plateforme !\n"
                         + "L'équipe SenBus.";
-                
+
                 // On appelle directement 'send' sur l'objet injecté
-                // La signature est généralement : mailManager.send(userId, subject, body) 
+                // La signature est généralement : mailManager.send(userId, subject, body)
                 // ou mailManager.send(user, subject, body)
-                mailManager.sendMessage(user, false, subject, body); 
-                
+                mailManager.sendMessage(user, false, subject, body);
+
                 LOGGER.info("📧 Email de confirmation envoyé à : " + user.getEmail());
             } catch (Exception e) {
                 LOGGER.error("💥 Erreur lors de l'envoi de l'email : " + e.getMessage());

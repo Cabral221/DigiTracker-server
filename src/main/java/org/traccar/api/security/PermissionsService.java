@@ -226,7 +226,9 @@ public class PermissionsService {
 
     public void checkSubscription(long userId) throws StorageException, SecurityException {
         User user = getUser(userId);
-        if (user.getAdministrator()) return;
+        if (user.getAdministrator()) {
+            return;
+        }
 
         Object isSubscribed = user.getAttributes().get("isSubscriber");
         Object endDateObj = user.getAttributes().get("subscriptionEndDate");
@@ -257,7 +259,8 @@ public class PermissionsService {
                 } catch (Exception e) {
                     // Si ça échoue, on tente votre ancien format long
                     try {
-                        SimpleDateFormat longSdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", java.util.Locale.ENGLISH);
+                        SimpleDateFormat longSdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy",
+                            java.util.Locale.ENGLISH);
                         expireTime = longSdf.parse(endDateObj.toString()).getTime();
                     } catch (Exception e2) {
                         throw new SecurityException("Invalid date format in database");

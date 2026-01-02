@@ -87,7 +87,7 @@ public class UserResource extends BaseObjectResource<User> {
     @POST
     public Response add(User entity) throws StorageException {
         User currentUser = getUserId() > 0 ? permissionsService.getUser(getUserId()) : null;
-        
+
         if (currentUser == null || !currentUser.getAdministrator()) {
             permissionsService.checkUserUpdate(getUserId(), new User(), entity);
             if (currentUser != null && currentUser.getUserLimit() != 0) {
@@ -117,7 +117,7 @@ public class UserResource extends BaseObjectResource<User> {
 
         // --- INITIALISATION SÉCURITÉ SENBUS ---
         // On force le mode lecture seule et la limite à 0 avant l'insertion
-        if (!entity.getAdministrator()) { 
+        if (!entity.getAdministrator()) {
             entity.setReadonly(true);
             LOGGER.info("✅ ReadOnly à true pour : " + entity.getEmail());
             // L'utilisateur ne peut rien créer/modifier
@@ -132,7 +132,7 @@ public class UserResource extends BaseObjectResource<User> {
                 new Condition.Equals("id", entity.getId())));
 
         actionLogger.create(request, getUserId(), entity);
-        
+
         // 3. Liaison au groupe "Flotte SenBus"
         Group fleetGroup = storage.getObjects(Group.class, new Request(
                     new Columns.All(),
@@ -144,9 +144,13 @@ public class UserResource extends BaseObjectResource<User> {
         if (fleetGroup != null) {
             try {
                 storage.addPermission(new Permission(User.class, entity.getId(), Group.class, fleetGroup.getId()));
-                actionLogger.link(request, getUserId(), User.class, entity.getId(), Group.class, fleetGroup.getId());
+                actionLogger.link(request,
+                    getUserId(), User.class,
+                    entity.getId(), Group.class,
+                    fleetGroup.getId());
                 LOGGER.info("✅ Liaison groupe effectuée pour : " + entity.getEmail());
-                LOGGER.info("Utilisateur " + entity.getId() + " lié automatiquement au groupe SenBus ID: " + fleetGroup.getId());
+                LOGGER.info("Utilisateur " + entity.getId()
+                    + " lié automatiquement au groupe SenBus ID: " + fleetGroup.getId());
             } catch (Exception e) {
                 LOGGER.warn("⚠️ Liaison déjà existante pour : " + entity.getEmail());
                 LOGGER.warn("Échec de liaison au groupe SenBus : " + e.getMessage());
@@ -185,16 +189,16 @@ public class UserResource extends BaseObjectResource<User> {
     @PUT
     @Path("{id}")
     public Response update(User entity) throws Exception {
-        
+
         // On s'assure que l'entité reçue est bien un utilisateur
         if (!(entity instanceof User)) {
             // Laisser la classe parente gérer si ce n'est pas un utilisateur
             return super.update(entity);
         }
-        
+
         User updatedUser = (User) entity;
         long userId = updatedUser.getId();
-        
+
         // 1. Récupérer l'utilisateur qui effectue l'appel (l'utilisateur courant)
         User currentUser = permissionsService.getUser(getUserId());
 
