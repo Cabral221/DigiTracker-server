@@ -244,7 +244,7 @@ public class PermissionsService {
         if (!subscribed) {
             throw new SecurityException("Subscription required");
         }
-        
+
         // 2. Vérification de la date (très souple)
         if (endDateObj != null) {
             long expireTime = 0;
