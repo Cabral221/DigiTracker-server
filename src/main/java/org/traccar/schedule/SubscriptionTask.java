@@ -19,7 +19,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import jakarta.mail.MessagingException;
-// 1. Changez l'import de l'exécuteur
 
 public class SubscriptionTask {
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionTask.class);
@@ -39,7 +38,7 @@ public class SubscriptionTask {
 
     public void start() {
         executorService.scheduleAtFixedRate(this::checkExpirations, 0, CHECK_INTERVAL, TimeUnit.HOURS);
-        LOGGER.info("⏳ Tâche de vérification des abonnements SenBus démarrée.");
+        LOGGER.info("📧 Tâche de vérification des abonnements SenBus démarrée.");
     }
 
     private void checkExpirations() {
@@ -73,7 +72,7 @@ public class SubscriptionTask {
     }
 
     private void handleExpiration(User user) throws Exception {
-        LOGGER.info("⏳ Abonnement expiré pour : " + user.getEmail() + ". Réinitialisation...");
+        LOGGER.info("📧 Abonnement expiré pour : " + user.getEmail() + ". Réinitialisation...");
 
         // 3. Mise à jour des limites (Retour au mode public)
         user.set("isSubscriber", "false");
@@ -99,7 +98,7 @@ public class SubscriptionTask {
     private void sendExpirationEmail(User user) {
         if (mailManager != null) {
             try {
-                String subject = "Votre abonnement SenBus a expiré ðŸ›‘";
+                String subject = "Votre abonnement SenBus a expiré 🛑";
                 String body = "Bonjour " + user.getName() + ",\n\n"
                         + "Votre abonnement est arrivé à son terme. "
                         + "Vos accès privés ont été restreints.\n"

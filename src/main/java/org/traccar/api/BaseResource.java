@@ -48,7 +48,7 @@ public class BaseResource {
         return 0;
     }
 
-    // --- NOUVELLE MÃ‰THODE DE SÃ‰CURITÃ‰ ---
+    // --- NOUVELLE METHODE DE SÉCURITÉ ---
     protected void checkSubscription() throws StorageException {
         long userId = getUserId();
         if (userId == 0) {
@@ -57,19 +57,19 @@ public class BaseResource {
 
         User user = permissionsService.getUser(userId);
 
-        // 1. Les administrateurs sont exemptÃ©s
+        // 1. Les administrateurs sont exemptés
         if (user.getAdministrator()) {
             return;
         }
 
-        // 2. VÃ©rification du statut d'abonnÃ© (Format String "true")
+        // 2. Vérification du statut d'abonné (Format String "true")
         Object isSubscribed = user.getAttributes().get("isSubscriber");
         if (isSubscribed == null || !isSubscribed.toString().equals("true")) {
             // On renvoie une erreur 403 (Forbidden) avec un message clair
             throw new WebApplicationException("Subscription required", Response.Status.FORBIDDEN);
         }
 
-        // 3. VÃ©rification de la date d'expiration (Format String "yyyy-MM-dd")
+        // 3. Vérification de la date d'expiration (Format String "yyyy-MM-dd")
         Object endDateObj = user.getAttributes().get("subscriptionEndDate");
         if (endDateObj != null) {
             try {

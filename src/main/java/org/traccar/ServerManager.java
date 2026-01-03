@@ -81,11 +81,11 @@ public class ServerManager implements LifecycleObject {
                 LOGGER.warn("Connection failed", e);
             }
         }
-        // Demarrage de la tÃ¢che de vÃ©rification des abonnements
+        // Demarrage de la tâche de vérification des abonnements
         if (subscriptionTask != null) {
             subscriptionTask.start();
         }
-        // Fin demarrage tÃ¢che abonnements
+        // Fin demarrage tâche abonnements
     }
 
     @Override

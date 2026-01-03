@@ -115,17 +115,17 @@ public class UserResource extends BaseObjectResource<User> {
             }
         }
 
-        // --- INITIALISATION SÃ‰CURITÃ‰ SENBUS ---
-        // On force le mode lecture seule et la limite Ã  0 avant l'insertion
+        // --- INITIALISATION SÉCURITÉ SENBUS ---
+        // On force le mode lecture seule et la limite à 0 avant l'insertion
         if (!entity.getAdministrator()) {
             entity.setReadonly(true);
-            LOGGER.info("âœ… ReadOnly Ã  true pour : " + entity.getEmail());
-            // L'utilisateur ne peut rien crÃ©er/modifier
-            entity.setDeviceLimit(0);   // Impossible d'ajouter un vÃ©hicule
+            LOGGER.info("✅ ReadOnly à true pour : " + entity.getEmail());
+            // L'utilisateur ne peut rien créer/modifier
+            entity.setDeviceLimit(0);   // Impossible d'ajouter un véhicule
         }
         // ---------------------------------------
 
-        // CrÃ©ation de l'utilisateur
+        // Création de l'utilisateur
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         storage.updateObject(entity, new Request(
                 new Columns.Include("hashedPassword", "salt", "readonly", "deviceLimit"),
@@ -139,7 +139,7 @@ public class UserResource extends BaseObjectResource<User> {
                     new Condition.Equals("name", "Flotte SenBus")))
                     .stream().findFirst().orElse(null);
 
-        // --- DÃ‰BUT LIAISON AUTOMATIQUE FLOTTE SENBUS ---
+        // --- DÉBUT LIAISON AUTOMATIQUE FLOTTE SENBUS ---
         // On lie chaque nouvel utilisateur au groupe public (Passagers)
         if (fleetGroup != null) {
             try {
@@ -148,12 +148,12 @@ public class UserResource extends BaseObjectResource<User> {
                     getUserId(), User.class,
                     entity.getId(), Group.class,
                     fleetGroup.getId());
-                LOGGER.info("âœ… Liaison groupe effectuÃ©e pour : " + entity.getEmail());
+                LOGGER.info("✅ Liaison groupe effectuée pour : " + entity.getEmail());
                 LOGGER.info("Utilisateur " + entity.getId()
-                    + " liÃ© automatiquement au groupe SenBus ID: " + fleetGroup.getId());
+                    + " lié automatiquement au groupe SenBus ID: " + fleetGroup.getId());
             } catch (Exception e) {
-                LOGGER.warn("âš ï¸ Liaison dÃ©jÃ  existante pour : " + entity.getEmail());
-                LOGGER.warn("Ã‰chec de liaison au groupe SenBus : " + e.getMessage());
+                LOGGER.warn("⚠️ Liaison déjà existante pour : " + entity.getEmail());
+                LOGGER.warn("❌ Échec de liaison au groupe SenBus : " + e.getMessage());
             }
         }
         // --- FIN LIAISON AUTOMATIQUE ---
@@ -190,37 +190,36 @@ public class UserResource extends BaseObjectResource<User> {
     @Path("{id}")
     public Response update(User entity) throws Exception {
 
-        // On s'assure que l'entitÃ© reÃ§ue est bien un utilisateur
+        // On s'assure que l'entité reçue est bien un utilisateur
         if (!(entity instanceof User)) {
-            // Laisser la classe parente gÃ©rer si ce n'est pas un utilisateur
+            // Laisser la classe parente gérer si ce n'est pas un utilisateur
             return super.update(entity);
         }
 
         User updatedUser = (User) entity;
         long userId = updatedUser.getId();
 
-        // 1. RÃ©cupÃ©rer l'utilisateur qui effectue l'appel (l'utilisateur courant)
+        // 1. Récupérer l'utilisateur qui effectue l'appel (l'utilisateur courant)
         User currentUser = permissionsService.getUser(getUserId());
 
-         // 2. RÃ©cupÃ©rer l'utilisateur original depuis la base de donnÃ©es (avant mise Ã  jour)
-        // Nous utilisons la requÃªte standard Traccar pour Ãªtre sÃ»r d'avoir tous les attributs
+         // 2. Récupérer l'utilisateur original depuis la base de données (avant mise à jour)
+        // Nous utilisons la requête standard Traccar pour être sûr d'avoir tous les attributs
         User originalUser = storage.getObject(User.class, new Request(
                 new Columns.All(), new Condition.Equals("id", userId)));
 
-        // --- DÃ‰BUT LOGIQUE DE SÃ‰CURITÃ‰ isSubscriber ---
-
-        // 3. VÃ‰RIFICATION DE SÃ‰CURITÃ‰ CRITIQUE : Seul l'Admin peut modifier isSubscriber
-        // --- SÃ‰CURITÃ‰ ATTRIBUTS (isSubscriber) ---
+        // --- DÉBUT LOGIQUE DE SÉCURITÉ isSubscriber ---
+        // 3. VÉRIFICATION DE SÉCURITÉ CRITIQUE : Seul l'Admin peut modifier isSubscriber
+        // --- SÉCURITÉ ATTRIBUTS (isSubscriber) ---
         if (!currentUser.getAdministrator()) {
             Object originalStatus = originalUser.getAttributes().get("isSubscriber");
             if (updatedUser.getAttributes().containsKey("isSubscriber")) {
                 updatedUser.getAttributes().put("isSubscriber", originalStatus);
             }
         }
-        // --- FIN LOGIQUE DE SÃ‰CURITÃ‰ isSubscriber ---
+        // --- FIN LOGIQUE DE SÉCURITÉ isSubscriber ---
 
-        // 4. Appeler la mÃ©thode parente pour exÃ©cuter le reste du traitement (permissions, enregistrement, logging)
-        // La mÃ©thode parente travaillera avec l'objet 'entity' qui contient maintenant l'attribut sÃ©curisÃ©.
+        // 4. Appeler la méthode parente pour exécuter le reste du traitement (permissions, enregistrement, logging)
+        // La méthode parente travaillera avec l'objet 'entity' qui contient maintenant l'attribut sécurisé.
 
         return super.update(updatedUser);
     }
