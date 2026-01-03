@@ -13,6 +13,9 @@ import org.traccar.mail.MailManager;
 
 import jakarta.inject.Inject;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.Collection;
 import java.util.concurrent.Executors; 
@@ -22,7 +25,6 @@ import jakarta.mail.MessagingException;
 
 public class SubscriptionTask {
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionTask.class);
-    private static final long CHECK_INTERVAL = 1; // Toutes les heures
 
     private final Storage storage;
     private final MailManager mailManager;
@@ -37,8 +39,23 @@ public class SubscriptionTask {
     }
 
     public void start() {
-        executorService.scheduleAtFixedRate(this::checkExpirations, 0, CHECK_INTERVAL, TimeUnit.HOURS);
-        LOGGER.info("📧 Tâche de vérification des abonnements SenBus démarrée.");
+        // Calcul du délai entre maintenant et le prochain minuit
+        long initialDelay = calculateDelayUntilMidnight();
+
+        // Exécution à minuit pile, puis toutes les 24 heures
+        executorService.scheduleAtFixedRate(
+                this::checkExpirations, 
+                initialDelay, 
+                24, 
+                TimeUnit.HOURS);
+        
+        LOGGER.info("📧 Tâche de vérification des abonnements SenBus planifiée à 00h00.");
+    }
+
+    private long calculateDelayUntilMidnight() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nextMidnight = now.toLocalDate().atTime(LocalTime.MIDNIGHT).plusDays(1);
+        return Duration.between(now, nextMidnight).toMinutes();
     }
 
     private void checkExpirations() {
