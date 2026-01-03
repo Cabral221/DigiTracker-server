@@ -37,7 +37,7 @@ public class PaymentResource extends BaseResource {
     @Inject
     private MailManager mailManager; // Ajoutez cette injection
 
-    // --- POINT D'ENTRÉE STRIPE  ---
+    // --- POINT D'ENTRÃ‰E STRIPE  ---
     @PermitAll
     @POST
     @Path("stripe/webhook")
@@ -49,7 +49,7 @@ public class PaymentResource extends BaseResource {
             if (sigHeader != null && endpointSecret != null) {
                 event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
             } else {
-                LOGGER.warn("⚠️ Webhook reçu sans signature (Test manuel).");
+                LOGGER.warn("âš ï¸ Webhook reÃ§u sans signature (Test manuel).");
                 event = ApiResource.GSON.fromJson(payload, Event.class);
             }
 
@@ -71,7 +71,7 @@ public class PaymentResource extends BaseResource {
                 }
 
                 if (userEmail != null) {
-                    String planType = "solo"; // valeur par défaut
+                    String planType = "solo"; // valeur par dÃ©faut
                     if (dataObj.has("metadata") && !dataObj.get("metadata").isJsonNull()) {
                         com.google.gson.JsonObject metadata = dataObj.getAsJsonObject("metadata");
                         LOGGER.info("INFO meta : " + metadata.toString());
@@ -79,7 +79,7 @@ public class PaymentResource extends BaseResource {
                             planType = metadata.get("plan_type").getAsString();
                         }
                     }
-                    // APPEL DE LA MÉTHODE UNIVERSELLE
+                    // APPEL DE LA MÃ‰THODE UNIVERSELLE
                     processSubscription(userEmail, "Stripe", planType);
                 }
             }
@@ -90,7 +90,7 @@ public class PaymentResource extends BaseResource {
         }
     }
 
-    // --- POINT D'ENTRÉE WAVE ---
+    // --- POINT D'ENTRÃ‰E WAVE ---
     @PermitAll
     @POST
     @Path("wave/webhook")
@@ -98,9 +98,9 @@ public class PaymentResource extends BaseResource {
     public Response handleWaveWebhook(String payload, @HeaderParam("Wave-Signature") String sigHeader) {
         try {
             String waveSecret = config.getString("wave.webhookSecret");
-            // Vérification de sécurité
+            // VÃ©rification de sÃ©curitÃ©
             if (sigHeader == null || !sigHeader.equals(waveSecret)) {
-                LOGGER.error("❌ Tentative de webhook Wave non autorisée ! Signature invalide.");
+                LOGGER.error("âŒ Tentative de webhook Wave non autorisÃ©e ! Signature invalide.");
                 return Response.status(Response.Status.UNAUTHORIZED).build();
             }
 
@@ -108,21 +108,21 @@ public class PaymentResource extends BaseResource {
             com.google.gson.JsonObject jsonPayload = ApiResource.GSON
                 .fromJson(payload, com.google.gson.JsonObject.class);
 
-            // 2. Vérifier le type d'événement (Wave utilise souvent "checkout.session.completed")
+            // 2. VÃ©rifier le type d'Ã©vÃ©nement (Wave utilise souvent "checkout.session.completed")
             String type = jsonPayload.get("type").getAsString();
 
             if ("checkout.session.completed".equals(type)) {
                 com.google.gson.JsonObject data = jsonPayload.getAsJsonObject("data");
 
-                // Wave permet de récupérer l'email ou un identifiant client
-                // On utilise souvent l'ID ou l'Email passé au checkout
+                // Wave permet de rÃ©cupÃ©rer l'email ou un identifiant client
+                // On utilise souvent l'ID ou l'Email passÃ© au checkout
                 String reference = data.get("client_reference_id").getAsString();
 
                 if (reference != null && reference.contains("@")) {
                     // String userEmail = reference.split(":")[0];
                     String userEmail = reference.split(":")[0];
                     String planType = reference.contains(":") ? reference.split(":")[1] : "solo";
-                    // APPEL DE LA MÉTHODE UNIVERSELLE
+                    // APPEL DE LA MÃ‰THODE UNIVERSELLE
                     processSubscription(userEmail, "Wave", planType);
                 }
             }
@@ -135,8 +135,8 @@ public class PaymentResource extends BaseResource {
     }
 
     /**
-     * MÉTHODE D'ACTIVATION UNIVERSELLE
-     * Peut être appelée par Stripe, Wave, ou un admin.
+     * MÃ‰THODE D'ACTIVATION UNIVERSELLE
+     * Peut Ãªtre appelÃ©e par Stripe, Wave, ou un admin.
      */
     private void processSubscription(String email, String provider, String planType) throws StorageException {
         User user = storage.getObjects(User.class, new Request(
@@ -156,13 +156,13 @@ public class PaymentResource extends BaseResource {
                     Calendar currentEnd = Calendar.getInstance();
                     currentEnd.setTime(sdf.parse(currentEndDateStr));
 
-                    // Si l'abonnement est encore valide, on commence à partir de la fin actuelle
+                    // Si l'abonnement est encore valide, on commence Ã  partir de la fin actuelle
                     if (currentEnd.after(calendar)) {
                         calendar.setTime(currentEnd.getTime());
-                        LOGGER.info("⏳ Prolongation de l'abonnement existant pour : " + email);
+                        LOGGER.info("â³ Prolongation de l'abonnement existant pour : " + email);
                     }
                 } catch (Exception e) {
-                    LOGGER.warn("⚠️ Date existante invalide, démarrage à aujourd'hui.");
+                    LOGGER.warn("âš ï¸ Date existante invalide, dÃ©marrage Ã  aujourd'hui.");
                 }
             }
 
@@ -170,11 +170,11 @@ public class PaymentResource extends BaseResource {
             calendar.add(Calendar.YEAR, 1);
             String endDateStr = sdf.format(calendar.getTime());
 
-            // Pour la date de début, on garde la date du jour du paiement
+            // Pour la date de dÃ©but, on garde la date du jour du paiement
             String startDateStr = sdf.format(new java.util.Date());
 
             // --- LOGIQUE DYNAMIQUE DES PACKS SENBUS ---
-            int deviceLimit = 1; // Par défaut Solo
+            int deviceLimit = 1; // Par dÃ©faut Solo
             String planName = "Pack Solo";
 
             if (planType != null) {
@@ -199,14 +199,14 @@ public class PaymentResource extends BaseResource {
                 }
             }
 
-            // 2. Mise à jour de l'utilisateur
+            // 2. Mise Ã  jour de l'utilisateur
             user.set("isSubscriber", "true");
             user.set("activePlan", planType); // On stocke le type de plan
             user.set("paymentProvider", provider); // Pour vos stats
             user.set("subscriptionStartDate", startDateStr);
             user.set("subscriptionEndDate", endDateStr);
 
-            // --- DÉBUT DÉSINSCRIPTION DU GROUPE PUBLIC ---
+            // --- DÃ‰BUT DÃ‰SINSCRIPTION DU GROUPE PUBLIC ---
             // 1. Trouver le groupe public
             Group fleetGroup = storage.getObjects(Group.class, new Request(
                     new Columns.All(),
@@ -220,19 +220,19 @@ public class PaymentResource extends BaseResource {
                         User.class, user.getId(), Group.class, fleetGroup.getId()));
 
                     // Log pour confirmer
-                    LOGGER.info("🚫 Utilisateur " + email + " retiré du groupe public SenBus (Abonnement actif)");
+                    LOGGER.info("ðŸš« Utilisateur " + email + " retirÃ© du groupe public SenBus (Abonnement actif)");
                 } catch (Exception e) {
-                    LOGGER.warn("⚠️ Impossible de retirer l'utilisateur du groupe public : " + e.getMessage());
+                    LOGGER.warn("âš ï¸ Impossible de retirer l'utilisateur du groupe public : " + e.getMessage());
                 }
             }
-            // --- FIN DÉSINSCRIPTION ---
+            // --- FIN DÃ‰SINSCRIPTION ---
 
             // IMPORTANT : On nettoie les attributs JSON qui pourraient forcer le readonly
-            // car Traccar vérifie souvent les attributs avant la propriété de base
+            // car Traccar vÃ©rifie souvent les attributs avant la propriÃ©tÃ© de base
             user.getAttributes().remove("readonly");
-            // --- MISES À JOUR CRUCIALES POUR LES TRANSPORTURS ---
-            user.setDeviceLimit(deviceLimit); // ✅ Déblocage dynamique selon le plan
-            user.setReadonly(false); // ✅ Permet à l'utilisateur de modifier ses données
+            // --- MISES Ã€ JOUR CRUCIALES POUR LES TRANSPORTURS ---
+            user.setDeviceLimit(deviceLimit); // âœ… DÃ©blocage dynamique selon le plan
+            user.setReadonly(false); // âœ… Permet Ã  l'utilisateur de modifier ses donnÃ©es
             user.setLimitCommands(false); // Optionnel : permet d'envoyer des commandes (coupure moteur)
 
             storage.updateObject(user, new Request(
@@ -242,33 +242,33 @@ public class PaymentResource extends BaseResource {
             // 3. ENVOI DE L'EMAIL DE CONFIRMATION
             sendEmail(user, endDateStr, planName);
 
-            LOGGER.info("✅ Abonnement activé/prolongé via "
+            LOGGER.info("âœ… Abonnement activÃ©/prolongÃ© via "
                         + provider + " jusqu'au "
                         + endDateStr + " pour : " + email);
         } else {
-            LOGGER.warn("❌ Utilisateur introuvable pour activation : " + email);
+            LOGGER.warn("âŒ Utilisateur introuvable pour activation : " + email);
         }
     }
 
     private void sendEmail(User user, String endDate, String planName) {
         if (mailManager != null) {
             try {
-                String subject = "Bienvenue sur SenBus - Votre abonnement " + planName + " est actif ! 🚀";
+                String subject = "Bienvenue sur SenBus - Votre abonnement " + planName + " est actif ! ðŸš€";
                 String body = "Bonjour " + user.getName() + ",\n\n"
-                        + "Votre paiement a été validé avec succès.\n"
-                        + "Votre accès à la flotte SenBus est désormais actif jusqu'au " + endDate + ".\n\n"
+                        + "Votre paiement a Ã©tÃ© validÃ© avec succÃ¨s.\n"
+                        + "Votre accÃ¨s Ã  la flotte SenBus est dÃ©sormais actif jusqu'au " + endDate + ".\n\n"
                         + "Bonne navigation sur notre plateforme !\n"
-                        + "L'équipe SenBus.";
+                        + "L'Ã©quipe SenBus.";
 
-                // On appelle directement 'send' sur l'objet injecté
+                // On appelle directement 'send' sur l'objet injectÃ©
                 mailManager.sendMessage(user, false, subject, body);
 
-                LOGGER.info("📧 Email de confirmation envoyé à : " + user.getEmail());
+                LOGGER.info("ðŸ“§ Email de confirmation envoyÃ© Ã  : " + user.getEmail());
             } catch (Exception e) {
-                LOGGER.error("💥 Erreur lors de l'envoi de l'email : " + e.getMessage());
+                LOGGER.error("ðŸ’¥ Erreur lors de l'envoi de l'email : " + e.getMessage());
             }
         } else {
-            LOGGER.warn("⚠️ MailManager est null. Vérifiez votre configuration SMTP dans traccar.xml.");
+            LOGGER.warn("âš ï¸ MailManager est null. VÃ©rifiez votre configuration SMTP dans traccar.xml.");
         }
     }
 }

@@ -38,7 +38,7 @@ public class GeocoderTest {
     public void testGisgraphy() {
         Geocoder geocoder = new GisgraphyGeocoder(client, null, 0, new AddressFormat());
         String address = geocoder.getAddress(48.8530000, 2.3400000, null);
-        assertEquals("Rue du Jardinet, Paris, Île-de-France, FR", address);
+        assertEquals("Rue du Jardinet, Paris, ÃŽle-de-France, FR", address);
     }
 
     @Disabled
@@ -79,7 +79,7 @@ public class GeocoderTest {
     public void testHere() {
         Geocoder geocoder = new HereGeocoder(client, null, "aDc9qgsCpRbO9ioJIIAXzF6JYU7w8H5O260e9hsGrms", null, 0, new AddressFormat());
         String address = geocoder.getAddress(48.8575, 2.2944, null);
-        assertEquals("1 Tour Eiffel, Paris, Île-de-France, FRA", address);
+        assertEquals("1 Tour Eiffel, Paris, ÃŽle-de-France, FRA", address);
     }
 
     @Disabled

@@ -233,7 +233,7 @@ public class PermissionsService {
         Object isSubscribed = user.getAttributes().get("isSubscriber");
         Object endDateObj = user.getAttributes().get("subscriptionEndDate");
 
-        // 1. Vérification du statut (souple)
+        // 1. VÃ©rification du statut (souple)
         boolean subscribed = false;
         if (isSubscribed instanceof Boolean) {
             subscribed = (Boolean) isSubscribed;
@@ -245,7 +245,7 @@ public class PermissionsService {
             throw new SecurityException("Subscription required");
         }
 
-        // 2. Vérification de la date (très souple)
+        // 2. VÃ©rification de la date (trÃ¨s souple)
         if (endDateObj != null) {
             long expireTime = 0;
 
@@ -259,7 +259,7 @@ public class PermissionsService {
                     SimpleDateFormat shortSdf = new SimpleDateFormat("yyyy-MM-dd");
                     expireTime = shortSdf.parse(endDateObj.toString()).getTime();
                 } catch (Exception e) {
-                    // Si ça échoue, on tente votre ancien format long
+                    // Si Ã§a Ã©choue, on tente votre ancien format long
                     try {
                         SimpleDateFormat longSdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy",
                             java.util.Locale.ENGLISH);

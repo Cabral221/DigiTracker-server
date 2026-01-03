@@ -37,12 +37,12 @@ public class SubscriptionTask {
 
     public void start() {
         executorService.scheduleAtFixedRate(this::checkExpirations, 0, CHECK_INTERVAL, TimeUnit.HOURS);
-        LOGGER.info("🚀 Tâche de vérification des abonnements SenBus démarrée.");
+        LOGGER.info("ðŸš€ TÃ¢che de vÃ©rification des abonnements SenBus dÃ©marrÃ©e.");
     }
 
     private void checkExpirations() {
         try {
-            // 1. Récupérer tous les abonnés actifs
+            // 1. RÃ©cupÃ©rer tous les abonnÃ©s actifs
             Collection<User> subscribers = storage.getObjects(User.class, new Request(
                     new Columns.All(),
                     new Condition.Equals("isSubscriber", "true")));
@@ -55,29 +55,29 @@ public class SubscriptionTask {
                 if (endDateStr != null) {
                     Date endDate = sdf.parse(endDateStr);
 
-                    // 2. Si l'abonnement est expiré
+                    // 2. Si l'abonnement est expirÃ©
                     if (endDate.before(today)) {
                         handleExpiration(user);
                     }
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Erreur lors de la vérification des abonnements : ", e);
+            LOGGER.error("Erreur lors de la vÃ©rification des abonnements : ", e);
         }
     }
 
     private void handleExpiration(User user) throws Exception {
-        LOGGER.info("⏳ Abonnement expiré pour : " + user.getEmail() + ". Réinitialisation...");
+        LOGGER.info("â³ Abonnement expirÃ© pour : " + user.getEmail() + ". RÃ©initialisation...");
 
-        // 3. Mise à jour des limites (Retour au mode public)
+        // 3. Mise Ã  jour des limites (Retour au mode public)
         user.set("isSubscriber", "false");
-        user.setDeviceLimit(0); // Plus de camions privés
-        user.setReadonly(true); // Ne peut plus modifier ses données
+        user.setDeviceLimit(0); // Plus de camions privÃ©s
+        user.setReadonly(true); // Ne peut plus modifier ses donnÃ©es
 
         storage.updateObject(user, new Request(
                 new Columns.All(), new Condition.Equals("id", user.getId())));
 
-        // 4. Ré-inscription au groupe public "Flotte SenBus"
+        // 4. RÃ©-inscription au groupe public "Flotte SenBus"
         Group fleetGroup = storage.getObjects(Group.class, new Request(
                 new Columns.All(), new Condition.Equals("name", "Flotte SenBus")))
                 .stream().findFirst().orElse(null);
@@ -93,21 +93,21 @@ public class SubscriptionTask {
     private void sendExpirationEmail(User user) {
         if (mailManager != null) {
             try {
-                String subject = "Votre abonnement SenBus a expiré 🛑";
+                String subject = "Votre abonnement SenBus a expirÃ© ðŸ›‘";
                 String body = "Bonjour " + user.getName() + ",\n\n"
-                        + "Votre abonnement est arrivé à son terme. "
-                        + "Vos accès privés ont été restreints.\n"
+                        + "Votre abonnement est arrivÃ© Ã  son terme. "
+                        + "Vos accÃ¨s privÃ©s ont Ã©tÃ© restreints.\n"
                         + "Vous pouvez toujours consulter la flotte publique ou renouveler votre pack "
                         + "sur votre tableau de bord.\n\n"
-                        + "L'équipe SenBus.";
+                        + "L'Ã©quipe SenBus.";
 
-                // On entoure l'appel qui pose problème
+                // On entoure l'appel qui pose problÃ¨me
                 mailManager.sendMessage(user, false, subject, body);
 
-                LOGGER.info("📧 Email d'expiration envoyé à : " + user.getEmail());
+                LOGGER.info("ðŸ“§ Email d'expiration envoyÃ© Ã  : " + user.getEmail());
             } catch (MessagingException e) {
-                // On logue l'erreur sans bloquer la suite de la tâche
-                LOGGER.error("💥 Impossible d'envoyer l'email d'expiration à " + user.getEmail(), e);
+                // On logue l'erreur sans bloquer la suite de la tÃ¢che
+                LOGGER.error("ðŸ’¥ Impossible d'envoyer l'email d'expiration Ã  " + user.getEmail(), e);
             }
         }
     }

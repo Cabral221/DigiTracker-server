@@ -123,7 +123,7 @@ public class MainModule extends AbstractModule {
         bindConstant().annotatedWith(Names.named("configFile")).to(configFile);
         bind(Config.class).asEagerSingleton();
         bind(Timer.class).to(HashedWheelTimer.class).in(Scopes.SINGLETON);
-        // Enregistre SubscriptionTask comme un Singleton lancé au démarrage
+        // Enregistre SubscriptionTask comme un Singleton lancÃ© au dÃ©marrage
         bind(SubscriptionTask.class).asEagerSingleton();
     }
 
