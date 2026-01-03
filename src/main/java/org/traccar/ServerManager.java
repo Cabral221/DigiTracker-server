@@ -47,7 +47,7 @@ public class ServerManager implements LifecycleObject {
     private final SubscriptionTask subscriptionTask;
 
     @Inject
-    public ServerManager(Injector injector, Config config, SubscriptionTask subscriptionTask) 
+    public ServerManager(Injector injector, Config config, SubscriptionTask subscriptionTask)
         throws IOException, URISyntaxException, ReflectiveOperationException {
         this.subscriptionTask = subscriptionTask;
         Set<String> enabledProtocols = null;
