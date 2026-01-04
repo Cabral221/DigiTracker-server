@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Date;
 import java.util.Collection;
-import java.util.concurrent.Executors; 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import jakarta.mail.MessagingException;
@@ -44,11 +44,11 @@ public class SubscriptionTask {
 
         // Exécution à minuit pile, puis toutes les 24 heures
         executorService.scheduleAtFixedRate(
-                this::checkExpirations, 
-                initialDelay, 
-                24, 
+                this::checkExpirations,
+                initialDelay,
+                24,
                 TimeUnit.HOURS);
-        
+
         LOGGER.info("📧 Tâche de vérification des abonnements SenBus planifiée à 00h00.");
     }
 
@@ -69,10 +69,10 @@ public class SubscriptionTask {
             for (User user : allUsers) {
                 // 2. Vérifier manuellement l'attribut dans le JSON
                 Object isSub = user.getAttributes().get("isSubscriber");
-                
+
                 // On vérifie si c'est un abonné (gestion du String ou Boolean selon l'origine)
                 if (isSub != null && isSub.toString().equalsIgnoreCase("true")) {
-                    
+
                     String endDateStr = (String) user.getAttributes().get("subscriptionEndDate");
                     if (endDateStr != null) {
                         Date endDate = sdf.parse(endDateStr);
