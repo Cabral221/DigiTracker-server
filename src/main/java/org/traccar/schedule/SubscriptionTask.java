@@ -49,7 +49,7 @@ public class SubscriptionTask {
                 24,
                 TimeUnit.HOURS);
 
-        LOGGER.info("📧 Tâche de vérification des abonnements SenBus planifiée à 00h00.");
+        LOGGER.info("📧 Tâche de vérification des abonnements TerangaFleet planifiée à 00h00.");
     }
 
     private long calculateDelayUntilMidnight() {
@@ -99,9 +99,9 @@ public class SubscriptionTask {
         storage.updateObject(user, new Request(
                 new Columns.All(), new Condition.Equals("id", user.getId())));
 
-        // 4. Ré-inscription au groupe public "Flotte SenBus"
+        // 4. Ré-inscription au groupe public "TerangaFleet"
         Group fleetGroup = storage.getObjects(Group.class, new Request(
-                new Columns.All(), new Condition.Equals("name", "Flotte SenBus")))
+                new Columns.All(), new Condition.Equals("name", "TerangaFleet")))
                 .stream().findFirst().orElse(null);
 
         if (fleetGroup != null) {
@@ -115,13 +115,13 @@ public class SubscriptionTask {
     private void sendExpirationEmail(User user) {
         if (mailManager != null) {
             try {
-                String subject = "Votre abonnement SenBus a expiré 🛑";
+                String subject = "Votre abonnement TerangaFleet a expiré 🛑";
                 String body = "Bonjour " + user.getName() + ",\n\n"
                         + "Votre abonnement est arrivé à son terme. "
                         + "Vos accès privés ont été restreints.\n"
                         + "Vous pouvez toujours consulter la flotte publique ou renouveler votre pack "
                         + "sur votre tableau de bord.\n\n"
-                        + "L'équipe SenBus.";
+                        + "L'équipe TerangaFleet.";
                 // On entoure l'appel qui pose problème
                 mailManager.sendMessage(user, false, subject, body);
 
