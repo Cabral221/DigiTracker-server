@@ -48,7 +48,7 @@ public class BaseResource {
         return 0;
     }
 
-    // --- NOUVELLE MÉTHODE DE SÉCURITÉ ---
+    // --- NOUVELLE METHODE DE SÉCURITÉ ---
     protected void checkSubscription() throws StorageException {
         long userId = getUserId();
         if (userId == 0) {

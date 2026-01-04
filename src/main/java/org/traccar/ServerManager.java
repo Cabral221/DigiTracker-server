@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
 import org.traccar.helper.ClassScanner;
+import org.traccar.schedule.SubscriptionTask;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -43,10 +44,12 @@ public class ServerManager implements LifecycleObject {
 
     private final List<TrackerConnector> connectorList = new LinkedList<>();
     private final Map<String, BaseProtocol> protocolList = new ConcurrentHashMap<>();
+    private final SubscriptionTask subscriptionTask;
 
     @Inject
-    public ServerManager(
-            Injector injector, Config config) throws IOException, URISyntaxException, ReflectiveOperationException {
+    public ServerManager(Injector injector, Config config, SubscriptionTask subscriptionTask)
+        throws IOException, URISyntaxException, ReflectiveOperationException {
+        this.subscriptionTask = subscriptionTask;
         Set<String> enabledProtocols = null;
         if (config.hasKey(Keys.PROTOCOLS_ENABLE)) {
             enabledProtocols = new HashSet<>(Arrays.asList(config.getString(Keys.PROTOCOLS_ENABLE).split("[, ]")));
@@ -78,6 +81,11 @@ public class ServerManager implements LifecycleObject {
                 LOGGER.warn("Connection failed", e);
             }
         }
+        // Demarrage de la tâche de vérification des abonnements
+        if (subscriptionTask != null) {
+            subscriptionTask.start();
+        }
+        // Fin demarrage tâche abonnements
     }
 
     @Override

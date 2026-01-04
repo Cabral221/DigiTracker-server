@@ -87,6 +87,7 @@ import org.traccar.helper.WebHelper;
 import org.traccar.mail.LogMailManager;
 import org.traccar.mail.MailManager;
 import org.traccar.mail.SmtpMailManager;
+import org.traccar.schedule.SubscriptionTask;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.sms.HttpSmsClient;
 import org.traccar.sms.SmsManager;
@@ -122,6 +123,8 @@ public class MainModule extends AbstractModule {
         bindConstant().annotatedWith(Names.named("configFile")).to(configFile);
         bind(Config.class).asEagerSingleton();
         bind(Timer.class).to(HashedWheelTimer.class).in(Scopes.SINGLETON);
+        // Enregistre SubscriptionTask comme un Singleton lancé au démarrage
+        bind(SubscriptionTask.class).asEagerSingleton();
     }
 
     @Singleton

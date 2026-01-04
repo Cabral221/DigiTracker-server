@@ -153,7 +153,7 @@ public class UserResource extends BaseObjectResource<User> {
                     + " lié automatiquement au groupe SenBus ID: " + fleetGroup.getId());
             } catch (Exception e) {
                 LOGGER.warn("⚠️ Liaison déjà existante pour : " + entity.getEmail());
-                LOGGER.warn("Échec de liaison au groupe SenBus : " + e.getMessage());
+                LOGGER.warn("❌ Échec de liaison au groupe SenBus : " + e.getMessage());
             }
         }
         // --- FIN LIAISON AUTOMATIQUE ---
@@ -208,7 +208,6 @@ public class UserResource extends BaseObjectResource<User> {
                 new Columns.All(), new Condition.Equals("id", userId)));
 
         // --- DÉBUT LOGIQUE DE SÉCURITÉ isSubscriber ---
-
         // 3. VÉRIFICATION DE SÉCURITÉ CRITIQUE : Seul l'Admin peut modifier isSubscriber
         // --- SÉCURITÉ ATTRIBUTS (isSubscriber) ---
         if (!currentUser.getAdministrator()) {
