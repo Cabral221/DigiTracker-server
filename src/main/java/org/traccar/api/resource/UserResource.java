@@ -115,7 +115,7 @@ public class UserResource extends BaseObjectResource<User> {
             }
         }
 
-        // --- INITIALISATION SÉCURITÉ TerangaFleet ---
+        // --- INITIALISATION SÉCURITÉ WayTrack ---
         // On force le mode lecture seule et la limite à 0 avant l'insertion
         if (!entity.getAdministrator()) {
             entity.setReadonly(true);
@@ -133,13 +133,13 @@ public class UserResource extends BaseObjectResource<User> {
 
         actionLogger.create(request, getUserId(), entity);
 
-        // 3. Liaison au groupe "Flotte TerangaFleet"
+        // 3. Liaison au groupe "Flotte WayTrack"
         Group fleetGroup = storage.getObjects(Group.class, new Request(
                     new Columns.All(),
-                    new Condition.Equals("name", "TerangaFleet")))
+                    new Condition.Equals("name", "WayTrack")))
                     .stream().findFirst().orElse(null);
 
-        // --- DÉBUT LIAISON AUTOMATIQUE FLOTTE TerangaFleet ---
+        // --- DÉBUT LIAISON AUTOMATIQUE FLOTTE WayTrack ---
         // On lie chaque nouvel utilisateur au groupe public (Passagers)
         if (fleetGroup != null) {
             try {
@@ -150,10 +150,10 @@ public class UserResource extends BaseObjectResource<User> {
                     fleetGroup.getId());
                 LOGGER.info("✅ Liaison groupe effectuée pour : " + entity.getEmail());
                 LOGGER.info("Utilisateur " + entity.getId()
-                    + " lié automatiquement au groupe TerangaFleet ID: " + fleetGroup.getId());
+                    + " lié automatiquement au groupe WayTrack ID: " + fleetGroup.getId());
             } catch (Exception e) {
                 LOGGER.warn("⚠️ Liaison déjà existante pour : " + entity.getEmail());
-                LOGGER.warn("❌ Échec de liaison au groupe TerangaFleet : " + e.getMessage());
+                LOGGER.warn("❌ Échec de liaison au groupe WayTrack : " + e.getMessage());
             }
         }
         // --- FIN LIAISON AUTOMATIQUE ---

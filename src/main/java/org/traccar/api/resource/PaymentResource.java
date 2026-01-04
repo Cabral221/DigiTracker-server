@@ -166,14 +166,14 @@ public class PaymentResource extends BaseResource {
                 }
             }
 
-            // Pour TerangaFleet, on ajoute 1 an (ou Calendar.MONTH, 1 pour un mois)
+            // Pour WayTrack, on ajoute 1 an (ou Calendar.MONTH, 1 pour un mois)
             calendar.add(Calendar.YEAR, 1);
             String endDateStr = sdf.format(calendar.getTime());
 
             // Pour la date de début, on garde la date du jour du paiement
             String startDateStr = sdf.format(new java.util.Date());
 
-            // --- LOGIQUE DYNAMIQUE DES PACKS TerangaFleet ---
+            // --- LOGIQUE DYNAMIQUE DES PACKS WayTrack ---
             int deviceLimit = 1; // Par défaut Solo
             String planName = "Pack Solo";
 
@@ -210,7 +210,7 @@ public class PaymentResource extends BaseResource {
             // 1. Trouver le groupe public
             Group fleetGroup = storage.getObjects(Group.class, new Request(
                     new Columns.All(),
-                    new Condition.Equals("name", "TerangaFleet")))
+                    new Condition.Equals("name", "WayTrack")))
                     .stream().findFirst().orElse(null);
 
             if (fleetGroup != null) {
@@ -220,7 +220,7 @@ public class PaymentResource extends BaseResource {
                         User.class, user.getId(), Group.class, fleetGroup.getId()));
 
                     // Log pour confirmer
-                    LOGGER.info("⚠️ Utilisateur " + email + " retiré du groupe public TerangaFleet (Abonnement actif)");
+                    LOGGER.info("⚠️ Utilisateur " + email + " retiré du groupe public WayTrack (Abonnement actif)");
                 } catch (Exception e) {
                     LOGGER.warn("⚠️ Impossible de retirer l'utilisateur du groupe public : " + e.getMessage());
                 }
@@ -253,12 +253,12 @@ public class PaymentResource extends BaseResource {
     private void sendEmail(User user, String endDate, String planName) {
         if (mailManager != null) {
             try {
-                String subject = "Bienvenue sur TerangaFleet - Votre abonnement " + planName + " est actif !";
+                String subject = "Bienvenue sur WayTrack - Votre abonnement " + planName + " est actif !";
                 String body = "Bonjour " + user.getName() + ",\n\n"
                         + "Votre paiement a été validé avec succès.\n"
-                        + "Votre accès à TerangaFleet est désormais actif jusqu'au " + endDate + ".\n\n"
+                        + "Votre accès à WayTrack est désormais actif jusqu'au " + endDate + ".\n\n"
                         + "Bonne navigation sur notre plateforme !\n"
-                        + "L'équipe TerangaFleet.";
+                        + "L'équipe WayTrack.";
 
                 // On appelle directement 'send' sur l'objet injecté
                 mailManager.sendMessage(user, false, subject, body);
